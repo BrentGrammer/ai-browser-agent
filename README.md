@@ -1,8 +1,9 @@
 # AI Agents
 
 ## Browser-Use Library (Python)
- 
+
 ### Setup
+
 - create a virtual environment (i.e. `conda create -n browseruse python=3.12`)
 - `conda activate browseruse` (or whatever env you created locally)
 - `uv pip install -r requirements.txt`
@@ -14,3 +15,9 @@
 ### Run the program
 
 - `python browser_agent.py`
+
+### What the agent does:
+
+- Attempts to login to a url (you will need to update the instructions under task= in browser_agent.py to your liking for your site)
+- After logging in, navigates through pages of the app
+- Takes a screenshot and saves it to a folder
