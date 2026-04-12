@@ -94,17 +94,14 @@ async def main():
         CRITICAL PRE-CONDITION:
         1. Load {required_params.get("TARGET_URL")}.
         2. IMMEDIATELY check if you are logged in (look for a logout button option in the menu in the top right corner of the home page). You will need to click the menu either in the top right corner of the page or the top left corner and look for a "Logout" option to determine if you are logged in.
-        3. IF YOU ARE ALREADY LOGGED IN: You MUST STOP immediately. Do NOT log out. Do NOT click anything. Under no circumstances should you ever click on a button or action that may delete a user account. Simply return the final result: "TERMINATED: Account already logged in."
+        3. INITIAL CHECK ONLY: Only if you are already logged in at the very start of this task (before you enter any credentials), stop and return: "TERMINATED: Account already logged in." Once you begin the login process in Step 4, ignore this rule.
         4. ONLY IF you see the login screen, proceed with the following steps:
             - Verify that you are on the correct login page and screen. The url should include the string "login". 
             - On the login page, if the previous checks have been verified, find the form field for "Email". Enter SECRET_USERNAME into it.
             - Find the field for the password labeled "password" and fill it in with SECRET_PW.
             - Wait for the page to finish loading after logging in and check for any alerts or popup messages that require acknowledgement to continue and click OK.
             - After the popup alerts or modals are gone, click on the hamburger menu in the top left corner of the page and select the option labeled My Saved Lists.
-            - After the page loads, take a screenshot and save it as "my_saved_lists.png".
-                - IMPORTANT: Use the 'take_screenshot' tool ONLY. 
-                - DO NOT use 'save_as_pdf'. 
-                - The filename must end in .png.
+            - After the page 'My Saved Lists' loads, wait 2 seconds.
             - Summarize what you see on the final page.
         """
 
@@ -115,18 +112,43 @@ async def main():
             sensitive_data=sensitive_data, # the key names match with the values in the dictionary - no special chars are needed like {} in the task string, but they need to be unambiguous and unique
             use_vision=True,             # Important for web apps
             # save_recording_path="recordings"  # Optional: also record video
-            max_steps=2,             # Total actions allowed (default is 100!)
+            max_steps=20,             # Total actions allowed (default is 100!)
             max_failures=2,           # Stop if it fails a single step twice
             use_thinking=True,        # Keep this True; it helps it "realize" it's stuck
+            # By leaving out 'save_as_pdf', the agent is forced to use 'take_screenshot'. this prevents the fallback of taking a pdf screenshot
+            # included_actions=['open_url', 'click_element', 'input_text', 'take_screenshot'],
+            system_prompt="CRITICAL: Never use the save_as_pdf tool. If take_screenshot fails, describe the error. PDF is forbidden.",
+            # CRITICAL: Stops the browser from killing itself before you snap the photo
+            close_on_finished=False
+
         )
 
         result = await agent.run()
+
+        cwd = os.getcwd()
+        final_path = os.path.join(cwd, "screenshots/my_saved_lists.png")
+        print(f"Forcing screenshot to: {final_path}")
+
+        # requires the Agent to stay open. Ensure close_on_finished=False is set.
+        page = await browser.get_current_page()
+        if page:
+            await page.screenshot(path=final_path, full_page=True)
+            print(f"✅ VERIFIED: Screenshot saved at {final_path}")
+        else:
+            # FALLBACK: If the browser closed too fast, check the agent's history
+            print("Browser closed too fast. Checking history...")
+            paths = agent.history.screenshot_paths()
+            if paths:
+                shutil.copy(paths[-1], final_path)
+                print(f"✅ RECOVERED: Copied from history to {final_path}")
 
         if result.is_done():
             print("Task completed!", result.final_result() if hasattr(result, 'final_result') else result)
         else:
             errors = result.errors() if result.errors() else "No errors found"
             raise Exception(f"Task FAILED: {errors}")
+        
+
     except Exception as ex:
         print(f"There was an error: {repr(ex)}")
 
@@ -134,7 +156,7 @@ async def main():
         # Find all agent temp folders in the system temp directory
         temp_pattern = os.path.join(tempfile.gettempdir(), "browser_use_agent_*")
         print(f"Cleaning temp location: {temp_pattern}")
-        
+
         for folder in glob.glob(temp_pattern):
             try:
                 shutil.rmtree(folder)
