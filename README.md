@@ -1,7 +1,7 @@
 # AI Agents
 
-## Browser Use
-
+## Browser-Use Library (Python)
+ 
 ### Setup
 
 - `conda activate browseruse`
