@@ -96,14 +96,64 @@ async def main():
             """Navigate to a specific URL."""
             await page.goto(url, wait_until="load")
             return f"Navigated to {url}"
-
+        
         @tool
         async def click_text(text: str) -> str:
-            """Click any visible text on the page."""
-            await page.get_by_text(text, exact=False).click()
-            await wait_for_stable_page(page=page)
-            return f"Clicked text: '{text}'"
+            """Click any visible text on the page. Use this for buttons, links, or menu items."""
+            
+            # Try to be specific first: Look for a button or link with this text
+            # This solves the multiple elements with the same text problem. using get_by_text() fails since playwright will not choose if two elements have the same text on the page
+            button_locator = page.get_by_role("button", name=text, exact=False)
+            link_locator = page.get_by_role("link", name=text, exact=False)
+            
+            try:
+                if await button_locator.count() > 0:
+                    await button_locator.first.click()
+                elif await link_locator.count() > 0:
+                    await link_locator.first.click()
+                else:
+                    # Fallback to the generic text locator if it's not a button/link
+                    # use .first to avoid strict mode errors if multiple things still exist
+                    await page.get_by_text(text, exact=False).first.click()
+                    
+                await wait_for_stable_page(page=page)
+                return f"Clicked text: '{text}'"
+            except Exception as e:
+                return f"Error clicking '{text}': {str(e)}"
 
+        @tool
+        async def fill_field(selector_or_text: str, value: str) -> str:
+            """
+            Fill a text input, password field, or textarea. 
+            selector_or_text: Can be the ID (e.g. '#something'), 
+                            the placeholder (e.g. 'Ex: Something'), 
+                            or the label text.
+            value: The text to type into the field.
+            """
+            try:
+                # 1. Try finding by CSS selector (best for IDs like #tickers-input)
+                locator = page.locator(selector_or_text)
+                
+                # 2. If that fails, try finding by Label (better for 'Username' or 'Password')
+                if await locator.count() == 0:
+                    locator = page.get_by_label(selector_or_text, exact=False)
+                    
+                # 3. If still nothing, try by Placeholder
+                if await locator.count() == 0:
+                    locator = page.get_by_placeholder(selector_or_text, exact=False)
+
+                # Ensure we use the first one if multiple are found
+                target = locator.first
+                
+                # Highlight it for the screenshot/human visibility (optional but helpful)
+                await target.scroll_into_view_if_needed()
+                
+                # Clear it first to be safe, then fill
+                await target.fill(value)
+                
+                return f"Successfully filled '{selector_or_text}' with value."
+            except Exception as e:
+                return f"Error filling field '{selector_or_text}': {str(e)}"
         
         @tool
         async def take_screenshot(filename: str = "") -> str:
@@ -129,7 +179,7 @@ async def main():
         print("🚀 Starting AI Agent Program")
 
         # Create tools bound to the current page
-        tools = [navigate_to, click_text, take_screenshot, get_page_state]
+        tools = [navigate_to, fill_field, click_text, take_screenshot, get_page_state]
 
         # setting temperature to 0 to make the results more rigid and less creative
         llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=os.getenv("OPENAI_API_KEY"))
@@ -150,7 +200,8 @@ Always use the available tools. Prefer clicking by visible text for navigation."
 
         task = f"""
         - Go to the login page (click on the link in the top right corner of the page with the text "Login").
-        - Find the Email Field on the login page and enter: {LOGIN_USERNAME}, then find the Password field and enter: {LOGIN_PASSWORD}).
+        - Find the Email field on the login page and use 'fill_field' to enter the text: {LOGIN_USERNAME}.
+        - Find the Password field and use 'fill_field' to enter the text: {LOGIN_PASSWORD}).
         - After the fields have been filled out, click the submit button (it is a submit button type with a title "LOG IN" in all caps, and NOT "Log In" which is just the header on the page).
         - After logged in, Open the hamburger menu in the top left.
         - Click on "My Saved Lists".
