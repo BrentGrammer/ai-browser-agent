@@ -11,6 +11,8 @@ from langchain.agents import create_agent
 from langchain.tools import tool
 from playwright.async_api import async_playwright, Page
 
+from utils.utils import sanitize_sensitive_text
+
 basedir = os.getcwd()
 # Point to the .env file in that same directory
 load_dotenv(os.path.join(basedir, '.env'))
@@ -215,18 +217,27 @@ Always use the available tools. Prefer clicking by visible text for navigation."
             "knowledge": knowledge
         })
 
-        # Save what was learned
-        # final_knowledge = {
-        #     "learned_patterns": knowledge.get("learned_patterns", []) + [str(result.get("output", ""))], # this needs to be serializable (not objects)
-        #     "successful_actions": [msg.get("content", "") for msg in result.get("messages", []) if isinstance(msg, dict)]
-        # }
-        final_knowledge = {
-            "learned_patterns": [],
-            "successful_actions": []
+        # Save what was learned to a knowledge file the agent can reference next time.
+        messages = result.get("messages", [])
+        # Get the very last message from the agent (usually the final summary/reasoning)
+        final_agent_message = next(
+            (m for m in reversed(messages) if hasattr(m, "content") and m.content.strip()),
+            None
+        )
+        final_summary = final_agent_message.content if final_agent_message else "No output"
+        updated_knowledge = {
+            "learned_patterns": knowledge.get("learned_patterns", []) + [final_summary],
+            "successful_actions": [
+                sanitize_sensitive_text(m.content) # TODO: can also remove creds from the task, but need to login initially with headless so cookies are stored in the persistent user profile
+                for m in messages 
+                if hasattr(m, "content") and m.content.strip()
+            ]
         }
-        save_knowledge(final_knowledge)
+        save_knowledge(updated_knowledge)
 
-        print(f'result: {repr(result)}')
+        # print(f'result: {repr(result)}')
+        # print(f'result keys: {repr(result.keys())}')
+        # print(f'last message type: {type(result["messages"][-1])}')
         print("\n✅ Agent Program completed!")
         print(f"Screenshots saved in ./{SCREENSHOT_DIR}/")
         print(f"Knowledge saved to {MEMORY_FILE} — run again to see learning in action.")
