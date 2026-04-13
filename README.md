@@ -23,3 +23,30 @@
 - Takes a screenshot and saves it to a folder
 
 ## Option 2: LangGraph (from LangChain) with Playwright
+
+- Could be a bit more predictable than leveraging Browser-Use
+- More programmatic control via Playwright
+- LangGraph can store memory to remember how to do things in the application
+
+### Pre-requisites and Setup
+
+- Python 3.12 in a virtual environment
+  - Example: `conda create -n langgraphagent python=3.12`
+    - `conda activate langgraphagent`
+    - Make sure the right Python Interpreter is selected in the IDE (i.e for VS Code `CMD + SHFT + P` -> `Python: Select Interpreter`)
+- Install dependencies
+
+```shell
+pip install langgraph langchain-openai playwright python-dotenv
+# or pip install -r requirements.txt in the langgraph folder
+playwright install chromium
+```
+
+### What the agent does:
+
+- Attempts to learn patterns of app usage (for example logging into the website)
+- Patterns are stored in memory from agent tasks run defined in the python script
+
+### Running the agent:
+
+- `python run langgraph_agent.py`
