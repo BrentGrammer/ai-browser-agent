@@ -1,6 +1,6 @@
 # AI Agents
 
-## Browser-Use Library (Python)
+## Option 1: Browser-Use Library (Python)
 
 ### Setup
 
@@ -21,3 +21,5 @@
 - Attempts to login to a url (you will need to update the instructions under task= in browser_agent.py to your liking for your site)
 - After logging in, navigates through pages of the app
 - Takes a screenshot and saves it to a folder
+
+## Option 2: LangGraph (from LangChain) with Playwright
