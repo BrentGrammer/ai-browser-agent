@@ -200,8 +200,8 @@ Always use the available tools. Prefer clicking by visible text for navigation."
 
         task = f"""
         - Go to the login page (click on the link in the top right corner of the page with the text "Login").
-        - Find the Email field on the login page and use 'fill_field' to enter the text: {LOGIN_USERNAME}.
-        - Find the Password field and use 'fill_field' to enter the text: {LOGIN_PASSWORD}).
+        - Find the Email field on the login page and use 'fill_field' to find the element by ID with the selector "#email" and enter the text: {LOGIN_USERNAME}.
+        - Find the Password field and use 'fill_field' to find the element by ID with the selector "#password" to enter the text: {LOGIN_PASSWORD}).
         - After the fields have been filled out, click the submit button (it is a submit button type with a title "LOG IN" in all caps, and NOT "Log In" which is just the header on the page).
         - After logged in, Open the hamburger menu in the top left.
         - Click on "My Saved Lists".
@@ -232,7 +232,7 @@ Always use the available tools. Prefer clicking by visible text for navigation."
         print(f"Knowledge saved to {MEMORY_FILE} — run again to see learning in action.")
 
         print("\nBrowser window is still open for inspection. Press Enter to close...")
-        input()
+        # input() # uncomment this if you want the browser to stay open until you hit enter in the terminal.
 
         # await context.close()   # Only uncomment if you want fresh session each time
 
