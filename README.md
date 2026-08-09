@@ -65,12 +65,11 @@ threat model and design.
 
 ### Setup
 
-1. Copy `env.template` to `.env` in the repo root and set `PROXY_ALLOWED_DOMAINS`
-   to a comma-separated list of hosts the agent may reach (your target app's domain
-   plus the LLM API, e.g. `yourapp.com,api.openai.com`). Subdomains are included
-   automatically.
-2. Create `langgraph/.env` from `langgraph/env.template` (target url and LLM API
-   key — no login credentials needed).
+Copy `env.template` to `.env` in the repo root and set `TARGET_URL` and
+`OPENAI_API_KEY` — no login credentials needed. That's the whole config: the
+egress proxy's allowlist is derived from it (the target app's domain plus the
+LLM API, subdomains included). The optional variables in the template cover
+extra navigation domains or extra proxy-allowed hosts (e.g. the app's CDN).
 
 ### First-time login
 

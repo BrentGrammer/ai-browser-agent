@@ -13,8 +13,9 @@ from langchain.tools import tool
 from playwright.async_api import async_playwright, Page
 
 basedir = os.getcwd()
-# Point to the .env file in that same directory
+# Config lives in the repo-root .env; a .env next to the script wins if present.
 load_dotenv(os.path.join(basedir, '.env'))
+load_dotenv(os.path.join(basedir, '..', '.env'))
 
 # ========================= CONFIG =========================
 BASE_URL = os.getenv("TARGET_URL")

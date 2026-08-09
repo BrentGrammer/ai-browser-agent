@@ -120,8 +120,9 @@ The Docker setup lives in `docker/` and `docker-compose.yml`:
 
 - `docker/Dockerfile` — agent image on `mcr.microsoft.com/playwright/python`,
   runs as `pwuser`, writable data only under `/data`
-- `docker/proxy/` — tinyproxy egress proxy; default-deny domain filter built from
-  `ALLOWED_DOMAINS` at startup
+- `docker/proxy/` — tinyproxy egress proxy; default-deny domain filter derived at
+  startup from `TARGET_URL`'s host + `LLM_API_DOMAIN` (default `api.openai.com`) +
+  the optional `ALLOWED_NAV_DOMAINS` / `PROXY_EXTRA_ALLOWED_DOMAINS`
 - `docker/seccomp_profile.json` — Playwright's official profile so Chromium's own
   sandbox works in Docker (no `--no-sandbox`)
 - `docker-compose.yml` — agent on an `internal`-only network (the proxy is its only
@@ -129,10 +130,10 @@ The Docker setup lives in `docker/` and `docker-compose.yml`:
 
 To run:
 
-1. `cp env.template .env` and set `PROXY_ALLOWED_DOMAINS` (target app + LLM API)
-2. Fill in `langgraph/.env` (see `langgraph/env.template` — API key and target URL only)
-3. First time: `LOGIN_MODE=true docker compose up --build`, log in via the viewer, Ctrl+C
-4. `docker compose up --build`
+1. `cp env.template .env` and set `TARGET_URL` and `OPENAI_API_KEY` — the proxy
+   allowlist is derived from these; the template's optional vars cover extras
+2. First time: `LOGIN_MODE=true docker compose up --build`, log in via the viewer, Ctrl+C
+3. `docker compose up --build`
 
 ### Watching the browser live
 

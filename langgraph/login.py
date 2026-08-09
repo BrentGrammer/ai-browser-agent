@@ -5,7 +5,9 @@ import signal
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 
+# Config lives in the repo-root .env; a .env next to the script wins if present.
 load_dotenv(os.path.join(os.getcwd(), ".env"))
+load_dotenv(os.path.join(os.getcwd(), "..", ".env"))
 
 TARGET_URL = os.getenv("TARGET_URL")
 USER_DATA_DIR = os.getenv("USER_DATA_DIR", "/tmp/user_profile")

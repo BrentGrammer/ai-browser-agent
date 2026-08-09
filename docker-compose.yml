@@ -10,8 +10,12 @@ services:
     build: docker/proxy
     networks: [internal, egress]
     environment:
-      # Comma-separated hosts the agent may reach, e.g. "yourapp.com,api.openai.com".
-      ALLOWED_DOMAINS: ${PROXY_ALLOWED_DOMAINS:?Set PROXY_ALLOWED_DOMAINS in a root .env file}
+      # The egress allowlist is derived: TARGET_URL's host, the LLM API, and the
+      # optional extras. Subdomains of each are included.
+      TARGET_URL: ${TARGET_URL:?Set TARGET_URL in a root .env file}
+      LLM_API_DOMAIN: ${LLM_API_DOMAIN:-api.openai.com}
+      ALLOWED_NAV_DOMAINS: ${ALLOWED_NAV_DOMAINS:-}
+      PROXY_EXTRA_ALLOWED_DOMAINS: ${PROXY_EXTRA_ALLOWED_DOMAINS:-}
     read_only: true
     tmpfs:
       - /etc/tinyproxy
@@ -31,7 +35,7 @@ services:
     depends_on: [proxy]
     # Internal-only network: the proxy is the agent's ONLY path to the outside.
     networks: [internal]
-    env_file: langgraph/.env
+    env_file: .env
     environment:
       # false = headed on Xvfb, watchable at http://<box>:6080/vnc.html via the viewer.
       HEADLESS: "false"

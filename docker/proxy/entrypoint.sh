@@ -1,8 +1,14 @@
 #!/bin/sh
 # Generates a tinyproxy config whose domain filter default-denies everything
-# except ALLOWED_DOMAINS (comma-separated; subdomains of each are allowed).
+# except the derived allowlist: TARGET_URL's host, the LLM API, any extra
+# navigation domains, and any extra proxy-only domains (e.g. the app's CDN).
+# Subdomains of each are allowed.
 set -eu
-: "${ALLOWED_DOMAINS:?Set ALLOWED_DOMAINS to a comma-separated list of hostnames}"
+: "${TARGET_URL:?Set TARGET_URL to the app the agent operates on}"
+
+target_host=$(printf '%s' "$TARGET_URL" \
+  | sed -E 's#^[A-Za-z][A-Za-z0-9+.-]*://##; s#/.*$##; s#^[^@]*@##; s#:[0-9]+$##')
+ALLOWED_DOMAINS="$target_host,${LLM_API_DOMAIN:-api.openai.com},${ALLOWED_NAV_DOMAINS:-},${PROXY_EXTRA_ALLOWED_DOMAINS:-}"
 
 FILTER=/etc/tinyproxy/filter
 : > "$FILTER"
