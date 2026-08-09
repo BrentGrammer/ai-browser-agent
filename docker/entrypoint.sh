@@ -7,4 +7,7 @@ if [ "${HEADLESS:-true}" = "false" ]; then
   export DISPLAY=:99
   x11vnc -display :99 -forever -shared -nopw -quiet -bg
 fi
+if [ "${LOGIN_MODE:-false}" = "true" ]; then
+  exec python login.py
+fi
 exec python langgraph_agent.py

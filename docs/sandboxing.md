@@ -85,11 +85,10 @@ else on this list.
 
 ## Credential hygiene (independent of sandboxing)
 
-Implemented: `ensure_logged_in()` performs the login with plain scripted Playwright
-before the agent loop starts, so the LLM never sees `LOGIN_USERNAME` /
-`LOGIN_PASSWORD`. The session persists in the browser profile across runs; when it
-is still valid, login is skipped entirely and the credentials may be removed from
-`.env`. Still recommended: use a dedicated low-privilege test account for the
+Implemented: no credentials in config at all. Log in by hand once through the
+noVNC viewer (`LOGIN_MODE=true docker compose up`); the session persists in the
+browser profile volume and the agent reuses it. Works on any site, including ones
+with 2FA. Still recommended: use a dedicated low-privilege test account for the
 target app, not a real one.
 
 ## Other options

@@ -69,9 +69,18 @@ threat model and design.
    to a comma-separated list of hosts the agent may reach (your target app's domain
    plus the LLM API, e.g. `yourapp.com,api.openai.com`). Subdomains are included
    automatically.
-2. Create `langgraph/.env` from `langgraph/env.template` as usual (target url,
-   login credentials, LLM API key). Optionally set `ALLOWED_NAV_DOMAINS` for extra
-   domains the agent may navigate to (the `TARGET_URL` host is always allowed).
+2. Create `langgraph/.env` from `langgraph/env.template` (target url and LLM API
+   key — no login credentials needed).
+
+### First-time login
+
+```shell
+LOGIN_MODE=true docker compose up --build
+```
+
+Open the viewer (URL below), log in to the site by hand, then Ctrl+C. The session
+is saved in the browser profile volume and reused by the agent. Repeat whenever
+the session expires. This works on any site — no selectors or credentials in config.
 
 ### Run
 

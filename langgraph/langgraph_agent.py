@@ -12,8 +12,6 @@ from langchain.agents import create_agent
 from langchain.tools import tool
 from playwright.async_api import async_playwright, Page
 
-from utils.utils import sanitize_sensitive_text
-
 basedir = os.getcwd()
 # Point to the .env file in that same directory
 load_dotenv(os.path.join(basedir, '.env'))
@@ -26,9 +24,6 @@ SCREENSHOT_DIR = os.getenv("SCREENSHOT_DIR", os.path.join(basedir, 'screenshots'
 HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
 # Set in Docker so all browser traffic goes through the egress-allowlist proxy.
 BROWSER_PROXY = os.getenv("BROWSER_PROXY")
-
-LOGIN_USERNAME = os.getenv("LOGIN_USERNAME")
-LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD")
 
 
 def allowed_nav_hosts() -> set:
@@ -83,23 +78,6 @@ async def wait_for_stable_page(page: Page, wait_for_selector: str = "", timeout:
         )
     # short timeout for rendering
     await page.wait_for_timeout(400)
-
-
-async def ensure_logged_in(page: Page) -> None:
-    """Scripted login: credentials go straight into the form and never reach the LLM."""
-    await page.goto(BASE_URL, wait_until="load")
-    login_link = page.get_by_role("link", name="Login")
-    if await login_link.count() == 0:
-        return  # session in the persistent profile is still valid
-    if not (LOGIN_USERNAME and LOGIN_PASSWORD):
-        raise RuntimeError("Not logged in and LOGIN_USERNAME/LOGIN_PASSWORD are not set")
-    await login_link.first.click()
-    await page.wait_for_selector("#email", state="visible")
-    await page.fill("#email", LOGIN_USERNAME)
-    await page.fill("#password", LOGIN_PASSWORD)
-    # The submit button is "LOG IN" (all caps); "Log In" is the page header.
-    await page.get_by_role("button", name="LOG IN", exact=True).click()
-    await page.wait_for_load_state("load")
 
 
 async def get_current_page_state(page: Page, wait_for_selector: str) -> str:
@@ -215,8 +193,8 @@ async def main():
             return await get_current_page_state(page=page, wait_for_selector=Selectors["MAIN_PAGE_SELECTOR"])
 
 
-        # Log in via script before the agent starts; the LLM never sees credentials.
-        await ensure_logged_in(page)
+        # Auth comes from the persistent profile; log in once via login.py (LOGIN_MODE).
+        await page.goto(BASE_URL, wait_until="load")
 
         print("🚀 Starting AI Agent Program")
 
@@ -265,8 +243,8 @@ Always use the available tools. Prefer clicking by visible text for navigation."
         updated_knowledge = {
             "learned_patterns": knowledge.get("learned_patterns", []) + [final_summary],
             "successful_actions": [
-                sanitize_sensitive_text(m.content) # TODO: can also remove creds from the task, but need to login initially with headless so cookies are stored in the persistent user profile
-                for m in messages 
+                m.content
+                for m in messages
                 if hasattr(m, "content") and m.content.strip()
             ]
         }
