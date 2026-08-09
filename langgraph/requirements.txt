@@ -1,5 +1,4 @@
 langchain
-langgraph 
-langchain-openai
+langgraph
 playwright
 python-dotenv

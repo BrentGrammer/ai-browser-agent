@@ -6,8 +6,7 @@ from typing import TypedDict, Annotated
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
-# or use gemini: from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import ChatOpenAI
+from langchain.chat_models import init_chat_model
 from langchain.agents import create_agent
 from langchain.tools import tool
 from playwright.async_api import async_playwright, Page
@@ -19,6 +18,8 @@ load_dotenv(os.path.join(basedir, '..', '.env'))
 
 # ========================= CONFIG =========================
 BASE_URL = os.getenv("TARGET_URL")
+# "provider:model", e.g. "openai:gpt-4o" or "anthropic:claude-sonnet-4-5".
+LLM_MODEL = os.getenv("LLM_MODEL")
 USER_DATA_DIR = os.getenv("USER_DATA_DIR", "/tmp/user_profile")   # Persistent & secure login
 MEMORY_FILE = os.getenv("MEMORY_FILE", "agent_knowledge.json")
 SCREENSHOT_DIR = os.getenv("SCREENSHOT_DIR", os.path.join(basedir, 'screenshots'))
@@ -202,14 +203,10 @@ async def main():
         # Create tools bound to the current page
         tools = [navigate_to, fill_field, click_text, take_screenshot, get_page_state]
 
-        # setting temperature to 0 to make the results more rigid and less creative
-        llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=os.getenv("OPENAI_API_KEY"))
-        # Or use Gemini:
-        # llm = ChatGoogleGenerativeAI(
-        #     model="gemini-2.5-flash",      # or "gemini-2.5-pro" for more power
-        #     temperature=0,
-        #     # google_api_key=os.getenv("GOOGLE_API_KEY")
-        # )
+        if not LLM_MODEL:
+            raise SystemExit("Set LLM_MODEL in .env, e.g. openai:gpt-4o")
+        # temperature 0 keeps results rigid and less creative
+        llm = init_chat_model(LLM_MODEL, temperature=0, api_key=os.getenv("LLM_API_KEY"))
 
         agent = create_agent(
             model=llm,

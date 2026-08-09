@@ -29,13 +29,11 @@ threat model and design.
 
 ### Setup
 
-Copy `.env.template` to `.env` in the repo root and set `TARGET_URL`,
-`LLM_API_DOMAIN` (your LLM provider's API host, e.g. `api.openai.com` or
-`api.anthropic.com`), and the LLM API key — no login credentials needed. That's
-the whole config: the egress proxy's allowlist is derived from it (the target
-app's domain plus the LLM API host, subdomains included). The optional variables
-in the template cover extra navigation domains or extra proxy-allowed hosts
-(e.g. the app's CDN).
+Copy `.env.template` to `.env` in the repo root and fill in `TARGET_URL`,
+`LLM_MODEL`, `LLM_API_DOMAIN`, and `LLM_API_KEY` — the template documents each.
+No login credentials needed; the proxy allowlist and the langchain provider
+package are both derived from these. Switching providers is an `.env` edit
+plus `docker compose up --build`.
 
 ### First-time login
 
@@ -95,8 +93,8 @@ For unwatched background runs, set `HEADLESS: "true"` in `docker-compose.yml`.
 - Install dependencies
 
 ```shell
-pip install langgraph langchain-openai playwright python-dotenv
-# or pip install -r requirements.txt in the langgraph folder
+pip install -r langgraph/requirements.txt
+# plus the langchain-<provider> package for your LLM_MODEL, e.g. langchain-openai
 playwright install chromium
 ```
 

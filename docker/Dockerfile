@@ -11,6 +11,10 @@ RUN apt-get update \
 COPY langgraph/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt "playwright==1.62.1"
 
+# Install the provider integration for LLM_MODEL, e.g. openai:gpt-4o -> langchain-openai.
+ARG LLM_MODEL
+RUN pip install --no-cache-dir "langchain-$(echo "${LLM_MODEL%%:*}" | tr _ -)"
+
 COPY langgraph/ /app/
 COPY docker/entrypoint.sh /entrypoint.sh
 

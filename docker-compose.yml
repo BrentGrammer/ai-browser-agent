@@ -31,6 +31,9 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      args:
+        # The langchain provider package is derived from this at build time.
+        LLM_MODEL: ${LLM_MODEL:?Set LLM_MODEL in a root .env file}
     depends_on: [proxy]
     # Internal-only network: the proxy is the agent's ONLY path to the outside.
     networks: [internal]
