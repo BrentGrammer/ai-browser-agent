@@ -3,6 +3,7 @@ import json
 import os
 from datetime import datetime
 from typing import TypedDict, Annotated
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 # or use gemini: from langchain_google_genai import ChatGoogleGenerativeAI
@@ -19,12 +20,25 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 # ========================= CONFIG =========================
 BASE_URL = os.getenv("TARGET_URL")
-USER_DATA_DIR = "/tmp/user_profile"   # Persistent & secure login
-MEMORY_FILE = "agent_knowledge.json"
-SCREENSHOT_DIR = os.path.join(basedir, 'screenshots')
+USER_DATA_DIR = os.getenv("USER_DATA_DIR", "/tmp/user_profile")   # Persistent & secure login
+MEMORY_FILE = os.getenv("MEMORY_FILE", "agent_knowledge.json")
+SCREENSHOT_DIR = os.getenv("SCREENSHOT_DIR", os.path.join(basedir, 'screenshots'))
+HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
+# Set in Docker so all browser traffic goes through the egress-allowlist proxy.
+BROWSER_PROXY = os.getenv("BROWSER_PROXY")
 
 LOGIN_USERNAME = os.getenv("LOGIN_USERNAME")
 LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD")
+
+
+def allowed_nav_hosts() -> set:
+    """Hosts the agent may navigate to: the target site plus ALLOWED_NAV_DOMAINS."""
+    hosts = set()
+    if BASE_URL and urlparse(BASE_URL).hostname:
+        hosts.add(urlparse(BASE_URL).hostname)
+    extra = os.getenv("ALLOWED_NAV_DOMAINS", "")
+    hosts.update(h.strip() for h in extra.split(",") if h.strip())
+    return hosts
 
 # Specific selectors for elements to wait for depending on the page
 Selectors = {
@@ -84,11 +98,15 @@ async def main():
     knowledge = load_knowledge()
 
     async with async_playwright() as p:
-        context = await p.chromium.launch_persistent_context(
+        # No --no-sandbox: Chromium's own sandbox stays on. In Docker this needs
+        # the seccomp profile in docker/seccomp_profile.json (see docker-compose.yml).
+        launch_kwargs = dict(
             user_data_dir=USER_DATA_DIR,
-            headless=False,                    # Set to True for background runs
-            args=["--no-sandbox"]
+            headless=HEADLESS,
         )
+        if BROWSER_PROXY:
+            launch_kwargs["proxy"] = {"server": BROWSER_PROXY}
+        context = await p.chromium.launch_persistent_context(**launch_kwargs)
         page = context.pages[0] if context.pages else await context.new_page()
 
         # NOTE: TOOLS must have JSON serializable arguments, just use primitives and not complex objects etc.
@@ -96,6 +114,11 @@ async def main():
         @tool
         async def navigate_to(url: str) -> str:
             """Navigate to a specific URL."""
+            # Allowlist check: a prompt-injected instruction can't send the agent off-site.
+            host = urlparse(url).hostname or ""
+            allowed = allowed_nav_hosts()
+            if not any(host == h or host.endswith("." + h) for h in allowed):
+                return f"Blocked: '{host}' is not an allowed navigation domain."
             await page.goto(url, wait_until="load")
             return f"Navigated to {url}"
         

@@ -115,6 +115,28 @@ Docker on the EC2 instance: Playwright base image + seccomp profile (no
 IMDSv2 hop-limit 1, and scripted login outside the LLM loop. That covers both risk
 categories.
 
+## Running the sandboxed setup (implemented)
+
+The Docker setup lives in `docker/` and `docker-compose.yml`:
+
+- `docker/Dockerfile` — agent image on `mcr.microsoft.com/playwright/python`,
+  runs as `pwuser`, writable data only under `/data`
+- `docker/proxy/` — tinyproxy egress proxy; default-deny domain filter built from
+  `ALLOWED_DOMAINS` at startup
+- `docker/seccomp_profile.json` — Playwright's official profile so Chromium's own
+  sandbox works in Docker (no `--no-sandbox`)
+- `docker-compose.yml` — agent on an `internal`-only network (the proxy is its only
+  route out), read-only rootfs, `cap_drop: ALL`, no-new-privileges, mem/pids limits
+
+To run:
+
+1. `cp env.template .env` and set `PROXY_ALLOWED_DOMAINS` (target app + LLM API)
+2. Fill in `langgraph/.env` as before (see `langgraph/env.template`)
+3. `docker compose up --build`
+
+The agent code also gained a navigation allowlist: `navigate_to` refuses hosts
+outside `TARGET_URL`'s domain plus `ALLOWED_NAV_DOMAINS`.
+
 ## Additional hardening ideas
 
 - Human-in-the-loop confirmation before destructive/irreversible actions

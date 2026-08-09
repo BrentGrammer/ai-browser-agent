@@ -1,0 +1,57 @@
+services:
+  proxy:
+    build: docker/proxy
+    networks: [internal, egress]
+    environment:
+      # Comma-separated hosts the agent may reach, e.g. "yourapp.com,api.openai.com".
+      ALLOWED_DOMAINS: ${PROXY_ALLOWED_DOMAINS:?Set PROXY_ALLOWED_DOMAINS in a root .env file}
+    read_only: true
+    tmpfs:
+      - /etc/tinyproxy
+      - /var/log/tinyproxy
+    cap_drop: [ALL]
+    # Tinyproxy starts as root to bind, then drops to its own user.
+    cap_add: [SETUID, SETGID]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  agent:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    depends_on: [proxy]
+    # Internal-only network: the proxy is the agent's ONLY path to the outside.
+    networks: [internal]
+    env_file: langgraph/.env
+    environment:
+      HEADLESS: "true"
+      BROWSER_PROXY: http://proxy:8888
+      HTTP_PROXY: http://proxy:8888
+      HTTPS_PROXY: http://proxy:8888
+      USER_DATA_DIR: /data/profile
+      SCREENSHOT_DIR: /data/screenshots
+      MEMORY_FILE: /data/knowledge/agent_knowledge.json
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+      # Playwright's profile: lets Chromium's own sandbox work, so no --no-sandbox.
+      - seccomp:./docker/seccomp_profile.json
+    mem_limit: 2g
+    pids_limit: 512
+    volumes:
+      - profile:/data/profile
+      - ./langgraph/screenshots:/data/screenshots
+      - knowledge:/data/knowledge
+
+networks:
+  internal:
+    internal: true
+  egress: {}
+
+volumes:
+  profile: {}
+  knowledge: {}

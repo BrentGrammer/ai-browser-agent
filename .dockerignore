@@ -1,0 +1,7 @@
+**/.env
+**/screenshots/
+**/agent_knowledge.json
+**/__pycache__/
+.git/
+docs/
+browser-use/
