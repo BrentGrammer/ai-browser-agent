@@ -108,9 +108,10 @@ playwright install chromium
 > **Warning:** this is an unsandboxed experiment kept around for tinkering only.
 > It runs directly on the host (none of the Docker/proxy protections apply) and
 > it passes `LOGIN_USERNAME` / `LOGIN_PASSWORD` from its env file straight into
-> the LLM prompt. Only ever point it at a throwaway account on a test app —
-> never real credentials. The sandboxed LangGraph setup above is the supported
-> path.
+> the LLM prompt — so the credentials leave your machine and reach the LLM
+> provider. Use a dedicated test account with a unique password and minimal
+> permissions, never a real account. The sandboxed LangGraph setup above is the
+> supported path.
 
 ### Setup
 
@@ -118,7 +119,7 @@ playwright install chromium
 - `conda activate browseruse` (or whatever env you created locally)
 - `uv pip install -r requirements.txt`
 - `uvx browser-use install` (one time install for chromium)
-- Create a `.env` in `browser-use/` based off of `browser-use/.env.template` with the target url, throwaway login, and llm api key
+- Create a `.env` in `browser-use/` based off of `browser-use/.env.template` with the target url, test-account login, and llm api key
   - adjust the model or type of LLM (Gemini, Open AI etc.) if needed in browser_agent.py
 
 ### Run the program
