@@ -50,3 +50,54 @@ playwright install chromium
 ### Running the agent:
 
 - `python run langgraph_agent.py`
+
+## Running Sandboxed in Docker (recommended)
+
+Runs the LangGraph agent in a locked-down container: Chromium's own sandbox stays on
+(no `--no-sandbox`), the agent's only network route is an egress proxy that
+default-denies all but an allowlist of domains, and the container is read-only,
+non-root, with all capabilities dropped. See `docs/sandboxing.md` for the full
+threat model and design.
+
+### Prerequisites
+
+- Docker with the Compose plugin installed on the host
+
+### Setup
+
+1. Copy `env.template` to `.env` in the repo root and set `PROXY_ALLOWED_DOMAINS`
+   to a comma-separated list of hosts the agent may reach (your target app's domain
+   plus the LLM API, e.g. `yourapp.com,api.openai.com`). Subdomains are included
+   automatically.
+2. Create `langgraph/.env` from `langgraph/env.template` as usual (target url,
+   login credentials, LLM API key). Optionally set `ALLOWED_NAV_DOMAINS` for extra
+   domains the agent may navigate to (the `TARGET_URL` host is always allowed).
+
+### Run
+
+```shell
+docker compose up --build
+```
+
+This starts three services:
+
+- `agent` — the LangGraph agent + Chromium, on an internal-only network
+- `proxy` — the egress allowlist proxy (the agent's only way out)
+- `viewer` — noVNC, so you can watch the browser live
+
+### Watching the browser live
+
+The compose default is headed mode (`HEADLESS: "false"`): the browser runs on a
+virtual display inside the container and is streamed via VNC. Open
+`http://<host-ip>:6080/vnc.html` in a browser to watch. On the EC2 workbench, use
+the box's Tailscale IP — the security group has no inbound rules, so only Tailscale
+traffic reaches the viewer.
+
+For unwatched background runs, set `HEADLESS: "true"` in `docker-compose.yml`.
+
+### Where output goes
+
+- Screenshots: `./langgraph/screenshots/` (bind-mounted from the container)
+- Learned knowledge: the `knowledge` named volume (`agent_knowledge.json`)
+- Browser profile (cookies/session): the `profile` named volume — persists across
+  runs, so logins stick; `docker volume rm` it for a fresh session
