@@ -1,3 +1,10 @@
+# Cap container logs so they can't fill the disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   proxy:
     build: docker/proxy
@@ -15,6 +22,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    logging: *logging
 
   agent:
     build:
@@ -49,6 +57,7 @@ services:
       - profile:/data/profile
       - ./langgraph/screenshots:/data/screenshots
       - knowledge:/data/knowledge
+    logging: *logging
 
   viewer:
     build: docker/viewer
@@ -62,6 +71,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    logging: *logging
 
 networks:
   internal:
