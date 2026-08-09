@@ -99,8 +99,9 @@ public traffic. Tailscale still gets through because it tunnels over an *outboun
 WireGuard connection — which also encrypts the HTTP stream, so no HTTPS is needed.
 
 To view: install Tailscale on your laptop and join the same tailnet as the box,
-then open `http://<box-tailscale-ip>:6080/vnc.html` (run `tailscale ip -4` on the
-box to get the IP).
+then open `http://agent-workbench:6080/vnc.html` (the box's MagicDNS name — bookmarkable,
+survives rebuilds). If MagicDNS is disabled on your tailnet, use the box's stable
+Tailscale IP instead (`tailscale ip -4` on the box).
 
 For unwatched background runs, set `HEADLESS: "true"` in `docker-compose.yml`.
 

@@ -148,8 +148,9 @@ public traffic; Tailscale gets through because it tunnels over an *outbound*
 WireGuard connection, which also encrypts the HTTP stream.
 
 To view: install Tailscale on your laptop, join the same tailnet as the box, and
-open `http://<box-tailscale-ip>:6080/vnc.html` (`tailscale ip -4` on the box gives
-the IP). Set `HEADLESS: "true"` for unwatched background runs.
+open `http://agent-workbench:6080/vnc.html` (the box's MagicDNS name; if MagicDNS is
+disabled, use the stable Tailscale IP from `tailscale ip -4` on the box instead).
+Set `HEADLESS: "true"` for unwatched background runs.
 
 The agent code also gained a navigation allowlist: `navigate_to` refuses hosts
 outside `TARGET_URL`'s domain plus `ALLOWED_NAV_DOMAINS`.
