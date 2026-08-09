@@ -83,6 +83,9 @@ Do both:
 If the dev box's IAM role has broad permissions, this matters more than anything
 else on this list.
 
+Status: DONE on the live workbench instance (2026-08-09), and pinned in the
+workbench repo's CDK stack for future rebuilds.
+
 ## Credential hygiene (independent of sandboxing)
 
 Implemented: no credentials in config at all. Log in by hand once through the
