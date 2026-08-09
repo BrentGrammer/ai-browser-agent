@@ -138,8 +138,12 @@ To run:
 
 With `HEADLESS: "false"` (the compose default), the agent runs Chromium headed on an
 Xvfb virtual display and shares it over VNC. The `viewer` service (noVNC) publishes
-it on port 6080 — open `http://<box-tailscale-ip>:6080/vnc.html` from your laptop.
-The EC2 security group has zero inbound rules, so only Tailscale traffic reaches it.
+it on port 6080 — open `http://<host-ip>:6080/vnc.html` from your laptop. The viewer
+has no authentication, so on a remote host make sure 6080 isn't publicly reachable.
+On the EC2 box provisioned by
+[ai-coding-agent-workbench](https://github.com/BrentGrammer/ai-coding-agent-workbench)
+(a separate repo, which sets up Tailscale on the instance), use the box's Tailscale
+IP — its security group has zero inbound rules, so only Tailscale traffic gets in.
 Set `HEADLESS: "true"` for unwatched background runs.
 
 The agent code also gained a navigation allowlist: `navigate_to` refuses hosts

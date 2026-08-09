@@ -89,9 +89,13 @@ This starts three services:
 
 The compose default is headed mode (`HEADLESS: "false"`): the browser runs on a
 virtual display inside the container and is streamed via VNC. Open
-`http://<host-ip>:6080/vnc.html` in a browser to watch. On the EC2 workbench, use
-the box's Tailscale IP — the security group has no inbound rules, so only Tailscale
-traffic reaches the viewer.
+`http://<host-ip>:6080/vnc.html` in a browser to watch.
+
+If you run this on a remote host, make sure port 6080 is not exposed to the public
+internet — the viewer has no authentication. For example, on an EC2 dev box
+provisioned by [ai-coding-agent-workbench](https://github.com/BrentGrammer/ai-coding-agent-workbench)
+(a separate repo), access is via that box's Tailscale IP: its security group has no
+inbound rules, so only Tailscale traffic reaches the viewer.
 
 For unwatched background runs, set `HEADLESS: "true"` in `docker-compose.yml`.
 
