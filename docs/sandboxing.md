@@ -134,6 +134,14 @@ To run:
 2. Fill in `langgraph/.env` as before (see `langgraph/env.template`)
 3. `docker compose up --build`
 
+### Watching the browser live
+
+With `HEADLESS: "false"` (the compose default), the agent runs Chromium headed on an
+Xvfb virtual display and shares it over VNC. The `viewer` service (noVNC) publishes
+it on port 6080 — open `http://<box-tailscale-ip>:6080/vnc.html` from your laptop.
+The EC2 security group has zero inbound rules, so only Tailscale traffic reaches it.
+Set `HEADLESS: "true"` for unwatched background runs.
+
 The agent code also gained a navigation allowlist: `navigate_to` refuses hosts
 outside `TARGET_URL`'s domain plus `ALLOWED_NAV_DOMAINS`.
 

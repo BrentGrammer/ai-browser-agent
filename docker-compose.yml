@@ -25,7 +25,8 @@ services:
     networks: [internal]
     env_file: langgraph/.env
     environment:
-      HEADLESS: "true"
+      # false = headed on Xvfb, watchable at http://<box>:6080/vnc.html via the viewer.
+      HEADLESS: "false"
       BROWSER_PROXY: http://proxy:8888
       HTTP_PROXY: http://proxy:8888
       HTTPS_PROXY: http://proxy:8888
@@ -46,6 +47,19 @@ services:
       - profile:/data/profile
       - ./langgraph/screenshots:/data/screenshots
       - knowledge:/data/knowledge
+
+  viewer:
+    build: docker/viewer
+    # Bridges the agent's VNC (internal network) out to a browser tab (egress network).
+    networks: [internal, egress]
+    ports:
+      - "6080:6080"
+    depends_on: [agent]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
 
 networks:
   internal:
