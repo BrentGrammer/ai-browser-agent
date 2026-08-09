@@ -130,7 +130,7 @@ The Docker setup lives in `docker/` and `docker-compose.yml`:
 
 To run:
 
-1. `cp env.template .env` and set `TARGET_URL`, `LLM_API_DOMAIN`, and the LLM API
+1. `cp .env.template .env` and set `TARGET_URL`, `LLM_API_DOMAIN`, and the LLM API
    key — the proxy allowlist is derived from these; the template's optional vars
    cover extras
 2. First time: `LOGIN_MODE=true docker compose up --build`, log in via the viewer, Ctrl+C
