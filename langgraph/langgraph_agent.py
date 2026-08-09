@@ -85,6 +85,23 @@ async def wait_for_stable_page(page: Page, wait_for_selector: str = "", timeout:
     await page.wait_for_timeout(400)
 
 
+async def ensure_logged_in(page: Page) -> None:
+    """Scripted login: credentials go straight into the form and never reach the LLM."""
+    await page.goto(BASE_URL, wait_until="load")
+    login_link = page.get_by_role("link", name="Login")
+    if await login_link.count() == 0:
+        return  # session in the persistent profile is still valid
+    if not (LOGIN_USERNAME and LOGIN_PASSWORD):
+        raise RuntimeError("Not logged in and LOGIN_USERNAME/LOGIN_PASSWORD are not set")
+    await login_link.first.click()
+    await page.wait_for_selector("#email", state="visible")
+    await page.fill("#email", LOGIN_USERNAME)
+    await page.fill("#password", LOGIN_PASSWORD)
+    # The submit button is "LOG IN" (all caps); "Log In" is the page header.
+    await page.get_by_role("button", name="LOG IN", exact=True).click()
+    await page.wait_for_load_state("load")
+
+
 async def get_current_page_state(page: Page, wait_for_selector: str) -> str:
     await wait_for_stable_page(page, wait_for_selector)
     title = await page.title()
@@ -198,8 +215,8 @@ async def main():
             return await get_current_page_state(page=page, wait_for_selector=Selectors["MAIN_PAGE_SELECTOR"])
 
 
-        # Load the website first
-        await page.goto(BASE_URL, wait_until="load")
+        # Log in via script before the agent starts; the LLM never sees credentials.
+        await ensure_logged_in(page)
 
         print("🚀 Starting AI Agent Program")
 
@@ -223,12 +240,9 @@ You must be precise, take screenshots after important steps, and learn patterns 
 Always use the available tools. Prefer clicking by visible text for navigation.""",
         )
 
-        task = f"""
-        - Go to the login page (click on the link in the top right corner of the page with the text "Login").
-        - Find the Email field on the login page and use 'fill_field' to find the element by ID with the selector "#email" and enter the text: {LOGIN_USERNAME}.
-        - Find the Password field and use 'fill_field' to find the element by ID with the selector "#password" to enter the text: {LOGIN_PASSWORD}).
-        - After the fields have been filled out, click the submit button (it is a submit button type with a title "LOG IN" in all caps, and NOT "Log In" which is just the header on the page).
-        - After logged in, Open the hamburger menu in the top left.
+        task = """
+        - You are already logged in.
+        - Open the hamburger menu in the top left.
         - Click on "My Saved Lists".
         - Take a screenshot of the resulting page.
         - Describe what you see and note any useful patterns (e.g. how the nav works) for future runs.

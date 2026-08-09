@@ -85,15 +85,12 @@ else on this list.
 
 ## Credential hygiene (independent of sandboxing)
 
-Currently `LOGIN_USERNAME` / `LOGIN_PASSWORD` are interpolated directly into the LLM
-prompt, which is why a sanitize step was needed on saved knowledge. Cleaner pattern:
-
-- **Do the login with plain scripted Playwright before the agent loop starts** —
-  the selectors are already known (`#email`, `#password`) — then hand the agent an
-  already-authenticated page. The LLM never sees the credentials; nothing to
-  sanitize.
-- Use Playwright's `storage_state` save/load to persist auth across runs.
-- Use a dedicated low-privilege test account for the target app, not a real one.
+Implemented: `ensure_logged_in()` performs the login with plain scripted Playwright
+before the agent loop starts, so the LLM never sees `LOGIN_USERNAME` /
+`LOGIN_PASSWORD`. The session persists in the browser profile across runs; when it
+is still valid, login is skipped entirely and the credentials may be removed from
+`.env`. Still recommended: use a dedicated low-privilege test account for the
+target app, not a real one.
 
 ## Other options
 
