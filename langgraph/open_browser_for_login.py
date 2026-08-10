@@ -32,7 +32,13 @@ async def main():
     page = context.pages[0] if context.pages else await context.new_page()
     await page.goto(TARGET_URL, wait_until="load")
 
-    print("Log in through the viewer, then come back here and press Enter to finish.")
+    print(f"The sandbox browser is open on {TARGET_URL}. To log in:")
+    print("  1. In your own browser, open the viewer: http://<host>:6080/vnc.html")
+    print("     (<host> is localhost for local Docker, or the box's Tailscale name,")
+    print("      e.g. agent-workbench, for a remote box)")
+    print("  2. Click Connect. You'll see the sandbox browser showing your app.")
+    print("  3. Log in there by hand — typing, 2FA, everything works as usual.")
+    print("  4. Come back to this terminal and press Enter.")
     # Daemon thread, not run_in_executor: a blocked readline must not stall
     # loop shutdown when Ctrl+C ends the wait instead of Enter.
     threading.Thread(
