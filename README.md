@@ -1,52 +1,144 @@
-# AI Agents
+# AI Browser Agent
 
-## Option 1: Browser-Use Library (Python)
+An LLM drives a real browser through your web app: it navigates, clicks, fills
+forms, takes screenshots, and saves what it learned for the next run.
 
-### Setup
+The supported setup is the LangGraph + Playwright agent running sandboxed in
+Docker. An unsandboxed Browser-Use experiment lives in `browser-use/` — read the
+warning at the bottom before using it.
 
-- create a virtual environment (i.e. `conda create -n browseruse python=3.12`)
-- `conda activate browseruse` (or whatever env you created locally)
-- `uv pip install -r requirements.txt`
-- `uvx browser-use install` (one time install for chromium)
-- Create a `.env` based off of `template.env` with the target url, username, password to login, and llm api key (Open AI is used in this project)
-  - adjust the model or type of LLM (Gemini, Open AI etc.) if needed in browser_agent.py
-  - The API key could be for any LLM service even though it is currently named after the OPEN AI service. (update as needed)
+## Prerequisites
 
-### Run the program
+- **Docker with the Compose plugin**
+- **A machine to run it on.** Local Docker works, but the intended home is the
+  EC2 dev box provisioned by
+  [ai-coding-agent-workbench](https://github.com/BrentGrammer/ai-coding-agent-workbench).
+  This project leans on two things that repo's CDK stack sets up: a security
+  group with no inbound rules, so the viewer on port 6080 is never publicly
+  reachable, and IMDSv2 with hop limit 1, so a prompt-injected agent can't
+  steal the instance's IAM credentials.
+- **Tailscale, when the sandbox runs on a remote box** — install it on your
+  laptop and join the same tailnet as the box. Since the box accepts no inbound
+  traffic, Tailscale is how you reach the viewer (and the box at all).
 
-- `python browser_agent.py`
+## Quick start
 
-### What the agent does:
+**1. Configure.** Copy `.env.template` to `.env` in the repo root and fill in the
+four values it documents: `TARGET_URL`, `LLM_MODEL`, `LLM_API_DOMAIN`,
+`LLM_API_KEY`. No login credentials — you log in by hand in step 3.
 
-- Attempts to login to a url (you will need to update the instructions under task= in browser_agent.py to your liking for your site)
-- After logging in, navigates through pages of the app
-- Takes a screenshot and saves it to a folder
-
-## Option 2: LangGraph (from LangChain) with Playwright
-
-- Could be a bit more predictable than leveraging Browser-Use
-- More programmatic control via Playwright
-- LangGraph can store memory to remember how to do things in the application
-
-### Pre-requisites and Setup
-
-- Python 3.12 in a virtual environment
-  - Example: `conda create -n langgraphagent python=3.12`
-    - `conda activate langgraphagent`
-    - Make sure the right Python Interpreter is selected in the IDE (i.e for VS Code `CMD + SHFT + P` -> `Python: Select Interpreter`)
-- Install dependencies
+**2. Start the sandbox.**
 
 ```shell
-pip install langgraph langchain-openai playwright python-dotenv
-# or pip install -r requirements.txt in the langgraph folder
-playwright install chromium
+./agent start
 ```
 
-### What the agent does:
+**3. Log in once.**
 
-- Attempts to learn patterns of app usage (for example logging into the website)
-- Patterns are stored in memory from agent tasks run defined in the python script
+```shell
+./agent login
+```
 
-### Running the agent:
+This opens your app — the `TARGET_URL` you set in `.env` in step 1 — in the
+sandboxed browser, which runs inside the container, so you can't see it
+directly. To reach it, open
+`http://<host>:6080/vnc.html` in your own browser (`localhost` for local
+Docker, the box's Tailscale name such as `agent-workbench` for a remote box)
+and click Connect. Log in to your app there, then come back to the terminal
+and press Enter. The session is saved and reused by every later run.
 
-- `python run langgraph_agent.py`
+**4. Run the agent.**
+
+```shell
+./agent run
+```
+
+Watch it work in the viewer. It follows the `task` written in
+`langgraph/langgraph_agent.py` — edit that text to change what it does, then run
+again. The sandbox stays up between runs.
+
+**5. Finish up.**
+
+```shell
+./agent screenshots   # optional: copy the run's screenshots to langgraph/screenshots/
+./agent stop
+```
+
+`stop` shuts the sandbox down but keeps the login session and learned
+knowledge, so next time you skip the login step: just `./agent start` and
+`./agent run`. Use `./agent reset` instead to also erase the session and
+knowledge.
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `./agent start` | Start the sandbox. Runs nothing on its own. |
+| `./agent login` | Open the browser so you can log in by hand. |
+| `./agent run` | Run the agent against the task in `langgraph_agent.py`. |
+| `./agent screenshots` | Copy screenshots out to `langgraph/screenshots/`. |
+| `./agent logs` | Follow container logs. |
+| `./agent stop` | Stop the sandbox, keeping the login session. |
+| `./agent reset` | Stop and erase the login session and learned knowledge. |
+
+## Watching the browser live
+
+The browser runs on a virtual display inside the container and is streamed over
+VNC. Open `http://<host>:6080/vnc.html` in your normal browser, where `<host>`
+is whatever address reaches the machine running the sandbox:
+
+- Docker on your own machine — `http://localhost:6080/vnc.html`
+- The EC2 workbench from
+  [ai-coding-agent-workbench](https://github.com/BrentGrammer/ai-coding-agent-workbench),
+  reached over Tailscale — `http://agent-workbench:6080/vnc.html` (the box's
+  Tailscale MagicDNS name)
+
+For unwatched background runs, set `HEADLESS: "true"` in `docker-compose.yml`.
+
+## Where output goes
+
+Everything lives in Docker volumes, so no host directory needs to be writable by
+the container:
+
+- **Screenshots** — `./agent screenshots` copies them to `langgraph/screenshots/`
+- **Learned knowledge** — `agent_knowledge.json`, fed back in on the next run
+- **Browser profile** — your login session; `./agent reset` clears it
+
+## How it is sandboxed
+
+Chromium's own sandbox stays on (no `--no-sandbox`), the container is read-only,
+non-root, and has every capability dropped, and its only route to the network is
+a proxy that denies every domain except your app and the LLM API. See
+[docs/sandboxing.md](docs/sandboxing.md) for the threat model and design.
+
+## Running locally without Docker (development)
+
+No sandbox — for iterating on the agent code.
+
+```shell
+conda create -n langgraphagent python=3.12 && conda activate langgraphagent
+pip install -r langgraph/requirements.txt
+pip install langchain-openai   # the package matching your LLM_MODEL
+playwright install chromium
+cd langgraph && python langgraph_agent.py
+```
+
+Uses the same root `.env` as the Docker setup.
+
+## Experimental: Browser-Use library (unsupported)
+
+> **Warning:** an unsandboxed experiment kept for tinkering. It runs directly on
+> the host — none of the Docker or proxy protections apply — and it passes
+> `LOGIN_USERNAME` / `LOGIN_PASSWORD` straight into the LLM prompt, so those
+> credentials leave your machine and reach the LLM provider. Use a dedicated test
+> account with a unique password and minimal permissions, never a real account.
+
+```shell
+conda create -n browseruse python=3.12 && conda activate browseruse
+uv pip install -r requirements.txt
+uvx browser-use install
+cd browser-use && python browser_agent.py
+```
+
+Create `browser-use/.env` from `browser-use/.env.template` first. The task lives
+under `task=` in `browser_agent.py`; the model is set in that file too.

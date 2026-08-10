@@ -1,0 +1,95 @@
+# Cap container logs so they can't fill the disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  proxy:
+    build: docker/proxy
+    networks: [internal, egress]
+    environment:
+      # Egress allowlist = TARGET_URL's host + LLM API + optional extras.
+      TARGET_URL: ${TARGET_URL:?Set TARGET_URL in a root .env file}
+      LLM_API_DOMAIN: ${LLM_API_DOMAIN:?Set LLM_API_DOMAIN in a root .env file}
+      ALLOWED_DOMAINS: ${ALLOWED_DOMAINS:-}
+    read_only: true
+    tmpfs:
+      - /etc/tinyproxy
+      - /var/log/tinyproxy
+    cap_drop: [ALL]
+    # Tinyproxy starts as root to bind, then drops to its own user.
+    cap_add: [SETUID, SETGID]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging: *logging
+
+  agent:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        # The langchain provider package is derived from this at build time.
+        LLM_MODEL: ${LLM_MODEL:?Set LLM_MODEL in a root .env file}
+    depends_on: [proxy]
+    # Internal-only network: the proxy is the agent's ONLY path to the outside.
+    networks: [internal]
+    env_file: .env
+    environment:
+      # Print agent output immediately instead of buffering it.
+      PYTHONUNBUFFERED: "1"
+      # false = headed on Xvfb, watchable at http://<box>:6080/vnc.html via the viewer.
+      HEADLESS: "false"
+      # Set here, not in the entrypoint: `docker compose exec` gets the
+      # container's env, not the entrypoint's exports.
+      DISPLAY: ":99"
+      HOME: /tmp
+      BROWSER_PROXY: http://proxy:8888
+      HTTP_PROXY: http://proxy:8888
+      HTTPS_PROXY: http://proxy:8888
+      USER_DATA_DIR: /data/profile
+      SCREENSHOT_DIR: /data/screenshots
+      MEMORY_FILE: /data/knowledge/agent_knowledge.json
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+      # Playwright's profile: lets Chromium's own sandbox work, so no --no-sandbox.
+      - seccomp:./docker/seccomp_profile.json
+    mem_limit: 2g
+    pids_limit: 512
+    volumes:
+      - profile:/data/profile
+      # Named, not bind-mounted: a host dir is root-owned and the container's
+      # non-root user can't write to it. Copy out with `./agent screenshots`.
+      - screenshots:/data/screenshots
+      - knowledge:/data/knowledge
+    logging: *logging
+
+  viewer:
+    build: docker/viewer
+    # Bridges the agent's VNC (internal network) out to a browser tab (egress network).
+    networks: [internal, egress]
+    ports:
+      - "6080:6080"
+    depends_on: [agent]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging: *logging
+
+networks:
+  internal:
+    internal: true
+  egress: {}
+
+volumes:
+  profile: {}
+  screenshots: {}
+  knowledge: {}

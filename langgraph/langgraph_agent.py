@@ -3,28 +3,39 @@ import json
 import os
 from datetime import datetime
 from typing import TypedDict, Annotated
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
-# or use gemini: from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import ChatOpenAI
+from langchain.chat_models import init_chat_model
 from langchain.agents import create_agent
 from langchain.tools import tool
 from playwright.async_api import async_playwright, Page
 
-from utils.utils import sanitize_sensitive_text
-
 basedir = os.getcwd()
-# Point to the .env file in that same directory
+# Config lives in the repo-root .env; a .env next to the script wins if present.
 load_dotenv(os.path.join(basedir, '.env'))
+load_dotenv(os.path.join(basedir, '..', '.env'))
 
 # ========================= CONFIG =========================
 BASE_URL = os.getenv("TARGET_URL")
-USER_DATA_DIR = "/tmp/user_profile"   # Persistent & secure login
-MEMORY_FILE = "agent_knowledge.json"
-SCREENSHOT_DIR = os.path.join(basedir, 'screenshots')
+# "provider:model", e.g. "openai:gpt-4o" or "anthropic:claude-sonnet-4-5".
+LLM_MODEL = os.getenv("LLM_MODEL")
+USER_DATA_DIR = os.getenv("USER_DATA_DIR", "/tmp/user_profile")   # Persistent & secure login
+MEMORY_FILE = os.getenv("MEMORY_FILE", "agent_knowledge.json")
+SCREENSHOT_DIR = os.getenv("SCREENSHOT_DIR", os.path.join(basedir, 'screenshots'))
+HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
+# Set in Docker so all browser traffic goes through the egress-allowlist proxy.
+BROWSER_PROXY = os.getenv("BROWSER_PROXY")
 
-LOGIN_USERNAME = os.getenv("LOGIN_USERNAME")
-LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD")
+
+def allowed_nav_hosts() -> set:
+    """Hosts the agent may navigate to: the target site plus ALLOWED_DOMAINS."""
+    hosts = set()
+    if BASE_URL and urlparse(BASE_URL).hostname:
+        hosts.add(urlparse(BASE_URL).hostname)
+    extra = os.getenv("ALLOWED_DOMAINS", "")
+    hosts.update(h.strip() for h in extra.split(",") if h.strip())
+    return hosts
 
 # Specific selectors for elements to wait for depending on the page
 Selectors = {
@@ -84,11 +95,16 @@ async def main():
     knowledge = load_knowledge()
 
     async with async_playwright() as p:
-        context = await p.chromium.launch_persistent_context(
+        # chromium_sandbox=True keeps Chromium's own sandbox on (playwright defaults
+        # it OFF). In Docker this needs docker/seccomp_profile.json (see compose).
+        launch_kwargs = dict(
             user_data_dir=USER_DATA_DIR,
-            headless=False,                    # Set to True for background runs
-            args=["--no-sandbox"]
+            headless=HEADLESS,
+            chromium_sandbox=True,
         )
+        if BROWSER_PROXY:
+            launch_kwargs["proxy"] = {"server": BROWSER_PROXY}
+        context = await p.chromium.launch_persistent_context(**launch_kwargs)
         page = context.pages[0] if context.pages else await context.new_page()
 
         # NOTE: TOOLS must have JSON serializable arguments, just use primitives and not complex objects etc.
@@ -96,6 +112,11 @@ async def main():
         @tool
         async def navigate_to(url: str) -> str:
             """Navigate to a specific URL."""
+            # Allowlist check: a prompt-injected instruction can't send the agent off-site.
+            host = urlparse(url).hostname or ""
+            allowed = allowed_nav_hosts()
+            if not any(host == h or host.endswith("." + h) for h in allowed):
+                return f"Blocked: '{host}' is not an allowed navigation domain."
             await page.goto(url, wait_until="load")
             return f"Navigated to {url}"
         
@@ -175,7 +196,7 @@ async def main():
             return await get_current_page_state(page=page, wait_for_selector=Selectors["MAIN_PAGE_SELECTOR"])
 
 
-        # Load the website first
+        # Auth comes from the persistent profile; log in once via login.py (LOGIN_MODE).
         await page.goto(BASE_URL, wait_until="load")
 
         print("🚀 Starting AI Agent Program")
@@ -183,14 +204,10 @@ async def main():
         # Create tools bound to the current page
         tools = [navigate_to, fill_field, click_text, take_screenshot, get_page_state]
 
-        # setting temperature to 0 to make the results more rigid and less creative
-        llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=os.getenv("OPENAI_API_KEY"))
-        # Or use Gemini:
-        # llm = ChatGoogleGenerativeAI(
-        #     model="gemini-2.5-flash",      # or "gemini-2.5-pro" for more power
-        #     temperature=0,
-        #     # google_api_key=os.getenv("GOOGLE_API_KEY")
-        # )
+        if not LLM_MODEL:
+            raise SystemExit("Set LLM_MODEL in .env, e.g. openai:gpt-4o")
+        # temperature 0 keeps results rigid and less creative
+        llm = init_chat_model(LLM_MODEL, temperature=0, api_key=os.getenv("LLM_API_KEY"))
 
         agent = create_agent(
             model=llm,
@@ -200,12 +217,9 @@ You must be precise, take screenshots after important steps, and learn patterns 
 Always use the available tools. Prefer clicking by visible text for navigation.""",
         )
 
-        task = f"""
-        - Go to the login page (click on the link in the top right corner of the page with the text "Login").
-        - Find the Email field on the login page and use 'fill_field' to find the element by ID with the selector "#email" and enter the text: {LOGIN_USERNAME}.
-        - Find the Password field and use 'fill_field' to find the element by ID with the selector "#password" to enter the text: {LOGIN_PASSWORD}).
-        - After the fields have been filled out, click the submit button (it is a submit button type with a title "LOG IN" in all caps, and NOT "Log In" which is just the header on the page).
-        - After logged in, Open the hamburger menu in the top left.
+        task = """
+        - You are already logged in.
+        - Open the hamburger menu in the top left.
         - Click on "My Saved Lists".
         - Take a screenshot of the resulting page.
         - Describe what you see and note any useful patterns (e.g. how the nav works) for future runs.
@@ -228,8 +242,8 @@ Always use the available tools. Prefer clicking by visible text for navigation."
         updated_knowledge = {
             "learned_patterns": knowledge.get("learned_patterns", []) + [final_summary],
             "successful_actions": [
-                sanitize_sensitive_text(m.content) # TODO: can also remove creds from the task, but need to login initially with headless so cookies are stored in the persistent user profile
-                for m in messages 
+                m.content
+                for m in messages
                 if hasattr(m, "content") and m.content.strip()
             ]
         }
@@ -239,13 +253,8 @@ Always use the available tools. Prefer clicking by visible text for navigation."
         # print(f'result keys: {repr(result.keys())}')
         # print(f'last message type: {type(result["messages"][-1])}')
         print("\n✅ Agent Program completed!")
-        print(f"Screenshots saved in ./{SCREENSHOT_DIR}/")
+        print(f"Screenshots saved in {SCREENSHOT_DIR}")
         print(f"Knowledge saved to {MEMORY_FILE} — run again to see learning in action.")
-
-        print("\nBrowser window is still open for inspection. Press Enter to close...")
-        # input() # uncomment this if you want the browser to stay open until you hit enter in the terminal.
-
-        # await context.close()   # Only uncomment if you want fresh session each time
 
 asyncio.run(main())
 

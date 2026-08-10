@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Thin wrapper over docker compose so the workflow is start / login / run.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+SCREENSHOT_OUT="langgraph/screenshots"
+
+usage() {
+  cat <<'EOF'
+Usage: ./agent <command>
+
+  start        Start the sandbox (proxy, browser display, viewer). Runs nothing.
+  login        Open the browser so you can log in by hand through the viewer.
+  run          Run the agent against the task in langgraph/langgraph_agent.py.
+  screenshots  Copy screenshots out of the container to langgraph/screenshots/.
+  logs         Follow container logs.
+  stop         Stop the sandbox. Login session and knowledge are kept.
+  reset        Stop and erase the saved login session and knowledge.
+EOF
+  exit 1
+}
+
+case "${1:-}" in
+  start)
+    docker compose up --build -d
+    echo "Sandbox up. Watch at http://<host>:6080/vnc.html (see README: Watching the browser live)"
+    echo "Next: ./agent login (first time), then ./agent run"
+    ;;
+  login)
+    docker compose exec agent python open_browser_for_login.py
+    ;;
+  run)
+    docker compose exec agent python langgraph_agent.py
+    ;;
+  screenshots)
+    mkdir -p "$SCREENSHOT_OUT"
+    docker compose cp agent:/data/screenshots/. "$SCREENSHOT_OUT/"
+    echo "Copied to $SCREENSHOT_OUT/"
+    ;;
+  logs)
+    docker compose logs -f
+    ;;
+  stop)
+    docker compose down
+    ;;
+  reset)
+    docker compose down -v
+    echo "Volumes erased. ./agent login again after the next start."
+    ;;
+  *)
+    usage
+    ;;
+esac
