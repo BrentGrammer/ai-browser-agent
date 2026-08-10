@@ -9,8 +9,7 @@ warning at the bottom before using it.
 
 ## Prerequisites
 
-- **Docker with the Compose plugin** — the only hard requirement; the sandbox
-  runs anywhere Docker does.
+- **Docker with the Compose plugin**
 - **A machine to run it on.** Local Docker works, but the intended home is the
   EC2 dev box provisioned by
   [ai-coding-agent-workbench](https://github.com/BrentGrammer/ai-coding-agent-workbench).
