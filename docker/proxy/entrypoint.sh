@@ -7,12 +7,12 @@ set -eu
 
 target_host=$(printf '%s' "$TARGET_URL" \
   | sed -E 's#^[A-Za-z][A-Za-z0-9+.-]*://##; s#/.*$##; s#^[^@]*@##; s#:[0-9]+$##')
-ALLOWED_DOMAINS="$target_host,$LLM_API_DOMAIN,${ALLOWED_NAV_DOMAINS:-},${PROXY_EXTRA_ALLOWED_DOMAINS:-}"
+domains="$target_host,$LLM_API_DOMAIN,${ALLOWED_DOMAINS:-}"
 
 FILTER=/etc/tinyproxy/filter
 : > "$FILTER"
 IFS=','
-for d in $ALLOWED_DOMAINS; do
+for d in $domains; do
   d=$(printf '%s' "$d" | tr -d ' ')
   [ -z "$d" ] && continue
   escaped=$(printf '%s' "$d" | sed 's/\./\\./g')

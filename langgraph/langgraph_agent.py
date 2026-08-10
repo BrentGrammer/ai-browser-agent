@@ -29,11 +29,11 @@ BROWSER_PROXY = os.getenv("BROWSER_PROXY")
 
 
 def allowed_nav_hosts() -> set:
-    """Hosts the agent may navigate to: the target site plus ALLOWED_NAV_DOMAINS."""
+    """Hosts the agent may navigate to: the target site plus ALLOWED_DOMAINS."""
     hosts = set()
     if BASE_URL and urlparse(BASE_URL).hostname:
         hosts.add(urlparse(BASE_URL).hostname)
-    extra = os.getenv("ALLOWED_NAV_DOMAINS", "")
+    extra = os.getenv("ALLOWED_DOMAINS", "")
     hosts.update(h.strip() for h in extra.split(",") if h.strip())
     return hosts
 

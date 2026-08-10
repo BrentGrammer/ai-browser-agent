@@ -121,8 +121,8 @@ The Docker setup lives in `docker/` and `docker-compose.yml`:
 - `docker/Dockerfile` — agent image on `mcr.microsoft.com/playwright/python`,
   runs as `pwuser`, writable data only under `/data`
 - `docker/proxy/` — tinyproxy egress proxy; default-deny domain filter derived at
-  startup from `TARGET_URL`'s host + `LLM_API_DOMAIN` (your LLM provider's API
-  host) + the optional `ALLOWED_NAV_DOMAINS` / `PROXY_EXTRA_ALLOWED_DOMAINS`
+  startup from `TARGET_URL`'s host + `LLM_API_DOMAIN` + the optional
+  `ALLOWED_DOMAINS`
 - `docker/seccomp_profile.json` — Playwright's official profile so Chromium's own
   sandbox works in Docker (no `--no-sandbox`)
 - `docker-compose.yml` — agent on an `internal`-only network (the proxy is its only
@@ -155,7 +155,7 @@ disabled, use the stable Tailscale IP from `tailscale ip -4` on the box instead)
 Set `HEADLESS: "true"` for unwatched background runs.
 
 The agent code also gained a navigation allowlist: `navigate_to` refuses hosts
-outside `TARGET_URL`'s domain plus `ALLOWED_NAV_DOMAINS`.
+outside `TARGET_URL`'s domain plus `ALLOWED_DOMAINS`.
 
 ## Additional hardening ideas
 

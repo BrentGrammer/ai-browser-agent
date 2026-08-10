@@ -13,8 +13,7 @@ services:
       # Egress allowlist = TARGET_URL's host + LLM API + optional extras.
       TARGET_URL: ${TARGET_URL:?Set TARGET_URL in a root .env file}
       LLM_API_DOMAIN: ${LLM_API_DOMAIN:?Set LLM_API_DOMAIN in a root .env file}
-      ALLOWED_NAV_DOMAINS: ${ALLOWED_NAV_DOMAINS:-}
-      PROXY_EXTRA_ALLOWED_DOMAINS: ${PROXY_EXTRA_ALLOWED_DOMAINS:-}
+      ALLOWED_DOMAINS: ${ALLOWED_DOMAINS:-}
     read_only: true
     tmpfs:
       - /etc/tinyproxy
