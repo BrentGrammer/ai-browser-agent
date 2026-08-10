@@ -60,9 +60,8 @@ services:
     pids_limit: 512
     volumes:
       - profile:/data/profile
-      # A named volume, not a bind mount: a host directory would be owned by
-      # root and unwritable by the container's non-root user. Copy files out
-      # with `./agent screenshots`.
+      # Named, not bind-mounted: a host dir is root-owned and the container's
+      # non-root user can't write to it. Copy out with `./agent screenshots`.
       - screenshots:/data/screenshots
       - knowledge:/data/knowledge
     logging: *logging

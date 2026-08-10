@@ -12,6 +12,5 @@ if [ "${HEADLESS:-true}" = "false" ]; then
   export DISPLAY=:99
   x11vnc -display :99 -forever -shared -nopw -quiet -bg
 fi
-# Idle: the container is a workbench, not a job. `./agent login` and
-# `./agent run` start the scripts explicitly.
+# Idle until `./agent login` or `./agent run` starts a script.
 exec sleep infinity
