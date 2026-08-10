@@ -7,9 +7,22 @@ The supported setup is the LangGraph + Playwright agent running sandboxed in
 Docker. An unsandboxed Browser-Use experiment lives in `browser-use/` — read the
 warning at the bottom before using it.
 
-## Quick start
+## Prerequisites
 
-Requires Docker with the Compose plugin.
+- **Docker with the Compose plugin** — the only hard requirement; the sandbox
+  runs anywhere Docker does.
+- **A machine to run it on.** Local Docker works, but the intended home is the
+  EC2 dev box provisioned by
+  [ai-coding-agent-workbench](https://github.com/BrentGrammer/ai-coding-agent-workbench).
+  This project leans on two things that repo's CDK stack sets up: a security
+  group with no inbound rules, so the viewer on port 6080 is never publicly
+  reachable, and IMDSv2 with hop limit 1, so a prompt-injected agent can't
+  steal the instance's IAM credentials.
+- **Tailscale, when the sandbox runs on a remote box** — install it on your
+  laptop and join the same tailnet as the box. Since the box accepts no inbound
+  traffic, Tailscale is how you reach the viewer (and the box at all).
+
+## Quick start
 
 **1. Configure.** Copy `.env.template` to `.env` in the repo root and fill in the
 four values it documents: `TARGET_URL`, `LLM_MODEL`, `LLM_API_DOMAIN`,
