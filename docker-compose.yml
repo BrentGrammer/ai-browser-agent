@@ -42,6 +42,10 @@ services:
       PYTHONUNBUFFERED: "1"
       # false = headed on Xvfb, watchable at http://<box>:6080/vnc.html via the viewer.
       HEADLESS: "false"
+      # Set here, not in the entrypoint: `docker compose exec` gets the
+      # container's env, not the entrypoint's exports.
+      DISPLAY: ":99"
+      HOME: /tmp
       BROWSER_PROXY: http://proxy:8888
       HTTP_PROXY: http://proxy:8888
       HTTPS_PROXY: http://proxy:8888
