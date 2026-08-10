@@ -33,29 +33,26 @@ Copy `.env.template` to `.env` in the repo root and fill in `TARGET_URL`,
 `LLM_MODEL`, `LLM_API_DOMAIN`, and `LLM_API_KEY` — the template documents each.
 No login credentials needed; the proxy allowlist and the langchain provider
 package are both derived from these. Switching providers is an `.env` edit
-plus `docker compose up --build`.
+plus `./agent start`.
 
-### First-time login
+### Commands
 
-```shell
-LOGIN_MODE=true docker compose up --build
-```
-
-Open the viewer (URL below), log in to the site by hand, then Ctrl+C. The session
-is saved in the browser profile volume and reused by the agent. Repeat whenever
-the session expires. This works on any site — no selectors or credentials in config.
-
-### Run
+Everything runs through the `./agent` wrapper:
 
 ```shell
-docker compose up --build
+./agent start        # start the sandbox — runs nothing on its own
+./agent login        # open the browser to log in by hand (first time only)
+./agent run          # run the agent against the task in langgraph_agent.py
+./agent screenshots  # copy screenshots out to langgraph/screenshots/
+./agent stop         # stop the sandbox, keeping the login session
+./agent reset        # stop and erase the login session and learned knowledge
 ```
 
-This starts three services:
-
-- `agent` — the LangGraph agent + Chromium, on an internal-only network
-- `proxy` — the egress allowlist proxy (the agent's only way out)
-- `viewer` — noVNC, so you can watch the browser live
+`start` brings up three services and leaves them idle: `agent` (Chromium on a
+virtual display), `proxy` (the egress allowlist, its only way out), and `viewer`
+(noVNC). Log in once via `login` — the saved session is reused by every later
+`run`. To change what the agent does, edit the `task` string in
+`langgraph/langgraph_agent.py`.
 
 ### Watching the browser live
 
@@ -79,10 +76,11 @@ For unwatched background runs, set `HEADLESS: "true"` in `docker-compose.yml`.
 
 ### Where output goes
 
-- Screenshots: `./langgraph/screenshots/` (bind-mounted from the container)
-- Learned knowledge: the `knowledge` named volume (`agent_knowledge.json`)
-- Browser profile (cookies/session): the `profile` named volume — persists across
-  runs, so logins stick; `docker volume rm` it for a fresh session
+Named volumes, so no host directory needs container-writable permissions:
+
+- Screenshots — `./agent screenshots` copies them to `./langgraph/screenshots/`
+- Learned knowledge (`agent_knowledge.json`)
+- Browser profile — logins stick across runs; `./agent reset` clears it
 
 ## Running LangGraph locally (unsandboxed, for development)
 

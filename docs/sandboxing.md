@@ -89,7 +89,7 @@ workbench repo's CDK stack for future rebuilds.
 ## Credential hygiene (independent of sandboxing)
 
 Implemented: no credentials in config at all. Log in by hand once through the
-noVNC viewer (`LOGIN_MODE=true docker compose up`); the session persists in the
+noVNC viewer (`./agent login`); the session persists in the
 browser profile volume and the agent reuses it. Works on any site, including ones
 with 2FA. Still recommended: use a dedicated low-privilege test account for the
 target app, not a real one.
@@ -133,8 +133,9 @@ To run:
 1. `cp .env.template .env` and set `TARGET_URL`, `LLM_MODEL`, `LLM_API_DOMAIN`,
    and `LLM_API_KEY` — the proxy allowlist is derived from these; the template's
    optional vars cover extras
-2. First time: `LOGIN_MODE=true docker compose up --build`, log in via the viewer, Ctrl+C
-3. `docker compose up --build`
+2. `./agent start` — brings the sandbox up idle
+3. First time: `./agent login`, log in via the viewer, Ctrl+C
+4. `./agent run` — as often as you like; `./agent screenshots` to collect output
 
 ### Watching the browser live
 
