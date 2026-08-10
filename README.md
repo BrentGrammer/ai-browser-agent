@@ -55,7 +55,19 @@ and press Enter. The session is saved and reused by every later run.
 
 Watch it work in the viewer. It follows the `task` written in
 `langgraph/langgraph_agent.py` — edit that text to change what it does, then run
-again.
+again. The sandbox stays up between runs.
+
+**5. Finish up.**
+
+```shell
+./agent screenshots   # optional: copy the run's screenshots to langgraph/screenshots/
+./agent stop
+```
+
+`stop` shuts the sandbox down but keeps the login session and learned
+knowledge, so next time you skip the login step: just `./agent start` and
+`./agent run`. Use `./agent reset` instead to also erase the session and
+knowledge.
 
 ## Commands
 
