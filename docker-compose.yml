@@ -38,6 +38,8 @@ services:
     networks: [internal]
     env_file: .env
     environment:
+      # Print agent output immediately instead of buffering it.
+      PYTHONUNBUFFERED: "1"
       # false = headed on Xvfb, watchable at http://<box>:6080/vnc.html via the viewer.
       HEADLESS: "false"
       # true = open the browser for manual login instead of running the agent.
