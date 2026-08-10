@@ -95,11 +95,12 @@ async def main():
     knowledge = load_knowledge()
 
     async with async_playwright() as p:
-        # No --no-sandbox: Chromium's own sandbox stays on. In Docker this needs
-        # the seccomp profile in docker/seccomp_profile.json (see docker-compose.yml).
+        # chromium_sandbox=True keeps Chromium's own sandbox on (playwright defaults
+        # it OFF). In Docker this needs docker/seccomp_profile.json (see compose).
         launch_kwargs = dict(
             user_data_dir=USER_DATA_DIR,
             headless=HEADLESS,
+            chromium_sandbox=True,
         )
         if BROWSER_PROXY:
             launch_kwargs["proxy"] = {"server": BROWSER_PROXY}

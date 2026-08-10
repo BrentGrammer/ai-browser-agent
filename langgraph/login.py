@@ -21,7 +21,8 @@ async def main():
         loop.add_signal_handler(sig, stop.set)
 
     async with async_playwright() as p:
-        launch_kwargs = dict(user_data_dir=USER_DATA_DIR, headless=False)
+        # chromium_sandbox=True: keep Chromium's own sandbox on (playwright defaults it off).
+        launch_kwargs = dict(user_data_dir=USER_DATA_DIR, headless=False, chromium_sandbox=True)
         if BROWSER_PROXY:
             launch_kwargs["proxy"] = {"server": BROWSER_PROXY}
         context = await p.chromium.launch_persistent_context(**launch_kwargs)

@@ -28,8 +28,8 @@ Timeout 600
 MaxClients 32
 Allow 0.0.0.0/0
 ConnectPort 443
-Filter $FILTER
-FilterExtended On
+Filter "$FILTER"
+FilterType ere
 FilterURLs Off
 FilterDefaultDeny Yes
 LogLevel Notice
