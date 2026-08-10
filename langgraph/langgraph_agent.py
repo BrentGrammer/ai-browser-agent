@@ -253,7 +253,7 @@ Always use the available tools. Prefer clicking by visible text for navigation."
         # print(f'result keys: {repr(result.keys())}')
         # print(f'last message type: {type(result["messages"][-1])}')
         print("\n✅ Agent Program completed!")
-        print(f"Screenshots saved in ./{SCREENSHOT_DIR}/")
+        print(f"Screenshots saved in {SCREENSHOT_DIR}")
         print(f"Knowledge saved to {MEMORY_FILE} — run again to see learning in action.")
 
         print("\nBrowser window is still open for inspection. Press Enter to close...")
