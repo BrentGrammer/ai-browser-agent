@@ -256,11 +256,6 @@ Always use the available tools. Prefer clicking by visible text for navigation."
         print(f"Screenshots saved in {SCREENSHOT_DIR}")
         print(f"Knowledge saved to {MEMORY_FILE} — run again to see learning in action.")
 
-        print("\nBrowser window is still open for inspection. Press Enter to close...")
-        # input() # uncomment this if you want the browser to stay open until you hit enter in the terminal.
-
-        # await context.close()   # Only uncomment if you want fresh session each time
-
 asyncio.run(main())
 
 
