@@ -161,4 +161,3 @@ outside `TARGET_URL`'s domain plus `ALLOWED_DOMAINS`.
 
 - Human-in-the-loop confirmation before destructive/irreversible actions
 - Timeouts and step/budget caps on the agent loop
-- Keep the browser profile (`user_data_dir`) inside the container, not on the host
