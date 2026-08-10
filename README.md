@@ -39,8 +39,9 @@ four values it documents: `TARGET_URL`, `LLM_MODEL`, `LLM_API_DOMAIN`,
 ./agent login
 ```
 
-This opens `TARGET_URL` in the sandboxed browser — which runs inside the
-container, so you can't see it directly. To reach it, open
+This opens your app — the `TARGET_URL` you set in `.env` in step 1 — in the
+sandboxed browser, which runs inside the container, so you can't see it
+directly. To reach it, open
 `http://<host>:6080/vnc.html` in your own browser (`localhost` for local
 Docker, the box's Tailscale name such as `agent-workbench` for a remote box)
 and click Connect. Log in to your app there, then come back to the terminal
