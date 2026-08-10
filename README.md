@@ -33,15 +33,18 @@ four values it documents: `TARGET_URL`, `LLM_MODEL`, `LLM_API_DOMAIN`,
 ./agent start
 ```
 
-**3. Log in once.** Open the viewer (see below), then:
+**3. Log in once.**
 
 ```shell
 ./agent login
 ```
 
-The browser opens your app. Log in through the viewer, then press Enter in the
-terminal. The session is saved and reused by every later run; repeat this only
-when it expires.
+This opens `TARGET_URL` in the sandboxed browser — which runs inside the
+container, so you can't see it directly. To reach it, open
+`http://<host>:6080/vnc.html` in your own browser (`localhost` for local
+Docker, the box's Tailscale name such as `agent-workbench` for a remote box)
+and click Connect. Log in to your app there, then come back to the terminal
+and press Enter. The session is saved and reused by every later run.
 
 **4. Run the agent.**
 
