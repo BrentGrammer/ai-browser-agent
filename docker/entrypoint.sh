@@ -11,6 +11,6 @@ if [ "${HEADLESS:-true}" = "false" ]; then
   x11vnc -display :99 -forever -shared -nopw -quiet -bg
 fi
 if [ "${LOGIN_MODE:-false}" = "true" ]; then
-  exec python login.py
+  exec python open_browser_for_login.py
 fi
 exec python langgraph_agent.py
