@@ -7,6 +7,8 @@ export HOME=/tmp
 if [ "${HEADLESS:-true}" = "false" ]; then
   mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
   Xvfb :99 -screen 0 1440x900x24 &
+  # Wait for the display before starting x11vnc, or it races Xvfb and dies.
+  for _ in $(seq 1 50); do [ -S /tmp/.X11-unix/X99 ] && break; sleep 0.2; done
   export DISPLAY=:99
   x11vnc -display :99 -forever -shared -nopw -quiet -bg
 fi
