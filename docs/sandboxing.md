@@ -134,7 +134,7 @@ To run:
    and `LLM_API_KEY` — the proxy allowlist is derived from these; the template's
    optional vars cover extras
 2. `./agent start` — brings the sandbox up idle
-3. First time: `./agent login`, log in via the viewer, Ctrl+C
+3. First time: `./agent login`, log in via the viewer, press Enter
 4. `./agent run` — as often as you like; `./agent screenshots` to collect output
 
 ### Watching the browser live

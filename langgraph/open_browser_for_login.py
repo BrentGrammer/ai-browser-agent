@@ -1,6 +1,8 @@
 import asyncio
 import os
 import signal
+import sys
+import threading
 
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
@@ -15,24 +17,39 @@ BROWSER_PROXY = os.getenv("BROWSER_PROXY")
 
 
 async def main():
-    stop = asyncio.Event()
+    done = asyncio.Event()
     loop = asyncio.get_running_loop()
+    # Ctrl+C still exits cleanly, but Enter is the advertised way out.
     for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, stop.set)
+        loop.add_signal_handler(sig, done.set)
 
-    async with async_playwright() as p:
-        # chromium_sandbox=True: keep Chromium's own sandbox on (playwright defaults it off).
-        launch_kwargs = dict(user_data_dir=USER_DATA_DIR, headless=False, chromium_sandbox=True)
-        if BROWSER_PROXY:
-            launch_kwargs["proxy"] = {"server": BROWSER_PROXY}
-        context = await p.chromium.launch_persistent_context(**launch_kwargs)
-        page = context.pages[0] if context.pages else await context.new_page()
-        await page.goto(TARGET_URL, wait_until="load")
+    p = await async_playwright().start()
+    # chromium_sandbox=True: keep Chromium's own sandbox on (playwright defaults it off).
+    launch_kwargs = dict(user_data_dir=USER_DATA_DIR, headless=False, chromium_sandbox=True)
+    if BROWSER_PROXY:
+        launch_kwargs["proxy"] = {"server": BROWSER_PROXY}
+    context = await p.chromium.launch_persistent_context(**launch_kwargs)
+    page = context.pages[0] if context.pages else await context.new_page()
+    await page.goto(TARGET_URL, wait_until="load")
 
-        print("Login mode: log in by hand through the viewer, then stop with Ctrl+C.")
-        print("The session is saved in the browser profile and reused by the agent.")
-        await stop.wait()
-        await context.close()
+    print("Log in through the viewer, then come back here and press Enter to finish.")
+    # Daemon thread, not run_in_executor: a blocked readline must not stall
+    # loop shutdown when Ctrl+C ends the wait instead of Enter.
+    threading.Thread(
+        target=lambda: (sys.stdin.readline(), loop.call_soon_threadsafe(done.set)),
+        daemon=True,
+    ).start()
+    await done.wait()
+
+    # On Ctrl+C the signal also reaches the Playwright driver process, which
+    # can die before these calls; the profile is already on disk either way.
+    for shutdown in (context.close, p.stop):
+        try:
+            await shutdown()
+        except Exception:
+            pass
+
+    print("Login session saved in the browser profile. Next: ./agent run")
 
 
 asyncio.run(main())

@@ -27,8 +27,9 @@ four values it documents: `TARGET_URL`, `LLM_MODEL`, `LLM_API_DOMAIN`,
 ./agent login
 ```
 
-The browser opens your app. Log in through the viewer, then Ctrl+C. The session
-is saved and reused by every later run; repeat this only when it expires.
+The browser opens your app. Log in through the viewer, then press Enter in the
+terminal. The session is saved and reused by every later run; repeat this only
+when it expires.
 
 **4. Run the agent.**
 
@@ -54,17 +55,15 @@ again.
 
 ## Watching the browser live
 
-The browser runs on a virtual display inside the container and is streamed to
-your browser over VNC.
+The browser runs on a virtual display inside the container and is streamed over
+VNC. Open `http://<host>:6080/vnc.html` in your normal browser, where `<host>`
+is whatever address reaches the machine running the sandbox:
 
-- **On this box:** `http://agent-workbench:6080/vnc.html`
-- **Anywhere else:** `http://<host-ip>:6080/vnc.html`
-
-The viewer has no password or TLS, so port 6080 must never be publicly
-reachable. On the EC2 box from
-[ai-coding-agent-workbench](https://github.com/BrentGrammer/ai-coding-agent-workbench)
-that is already true: its security group has no inbound rules at all, and you
-reach the viewer over Tailscale, which tunnels outbound and encrypts the stream.
+- Docker on your own machine — `http://localhost:6080/vnc.html`
+- The EC2 workbench from
+  [ai-coding-agent-workbench](https://github.com/BrentGrammer/ai-coding-agent-workbench),
+  reached over Tailscale — `http://agent-workbench:6080/vnc.html` (the box's
+  Tailscale MagicDNS name)
 
 For unwatched background runs, set `HEADLESS: "true"` in `docker-compose.yml`.
 
