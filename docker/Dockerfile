@@ -1,5 +1,5 @@
 # Playwright image tag must match the playwright version installed below.
-FROM mcr.microsoft.com/playwright/python:v1.62.1-noble
+FROM mcr.microsoft.com/playwright/python:v1.62.0-noble
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY langgraph/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt "playwright==1.62.1"
+RUN pip install --no-cache-dir -r requirements.txt "playwright==1.62.0"
 
 # Install the provider integration for LLM_MODEL, e.g. openai:gpt-4o -> langchain-openai.
 ARG LLM_MODEL
